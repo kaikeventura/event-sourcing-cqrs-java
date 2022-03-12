@@ -1,0 +1,72 @@
+version: "3.4"
+
+services:
+
+  zookeeper.event-sourcing:
+    container_name: zookeeper.event-sourcing
+    image: bitnami/zookeeper
+    restart: always
+    ports:
+      - "2181:2181"
+    volumes:
+      - "zookeeper_data:/bitnami"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    networks:
+      - bubble
+
+  kafka.event-sourcing:
+    container_name: kafka.event-sourcing
+    image: bitnami/kafka
+    ports:
+      - "9092:9092"
+    restart: always
+    volumes:
+      - "kafka_data:/bitnami"
+    environment:
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+    depends_on:
+      - zookeeper.event-sourcing
+    networks:
+      - bubble
+
+  mongo.event-sourcing:
+    container_name: mongo.event-sourcing
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    networks:
+      - bubble
+    restart: always
+    volumes:
+      - "/data/db"
+
+  mysql.event-sourcing:
+    container_name: mysql.event-sourcing
+    image: mysql:latest
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    ports:
+      - "3306:3306"
+    volumes:
+      - "/var/lib/mysql"
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      timeout: 20s
+      retries: 10
+    restart: always
+    networks:
+      - bubble
+
+volumes:
+  zookeeper_data:
+    driver: local
+  kafka_data:
+    driver: local
+   
+networks:
+  bubble:
+    external: true
